@@ -1,54 +1,39 @@
 package main
 
 import (
-	"bufio"
 	"fmt"
-	"log"
-	"os"
+	"strconv"
 )
 
-func inputLine() string {
-	file, err := os.Open("/Users/nrahkola/go/src/github.com/jollyra/advent-of-go/not_quite_lisp/1.in")
-	if err != nil {
-		log.Fatal(err)
+func chomps(s string) []string {
+	chomps := make([]string, 0)
+	if len(s) == 1 {
+		return []string{s}
 	}
-	defer file.Close()
-
-	scanner := bufio.NewScanner(file)
-	scanner.Scan()
-	return scanner.Text()
+	start := 0
+	for i := range s {
+		if s[start] != s[i] {
+			chomps = append(chomps, s[start:i])
+			start = i
+		}
+	}
+	chomps = append(chomps, s[start:])
+	return chomps
 }
 
-func WhatFloor(instructions string) int {
-	sum := 0
-	for _, ins := range instructions {
-		if ins == '(' {
-			sum += 1
-		} else if ins == ')' {
-			sum -= 1
-		}
+func LookSay(s string) string {
+	lookSay := ""
+	for _, s := range chomps(s) {
+		lookSay = lookSay + strconv.Itoa(len(s)) + string(s[0])
 	}
-	return sum
-}
-
-func DistanceToFloor(instructions string, floor int) int {
-	sum := 0
-	for i, ins := range instructions {
-		if ins == '(' {
-			sum += 1
-		} else if ins == ')' {
-			sum -= 1
-		}
-
-		if sum == floor {
-			return i + 1
-		}
-	}
-	return -1
+	return lookSay
 }
 
 func main() {
-	line := inputLine()
-	fmt.Println("Part 1:", WhatFloor(line))
-	fmt.Println("Part 2:", DistanceToFloor(line, -1))
+	input := "3113322113"
+	for i := 0; i < 40; i++ {
+		fmt.Println(i, len(input))
+		input = LookSay(input)
+	}
+	fmt.Println("Part 1:", len(input))
 }

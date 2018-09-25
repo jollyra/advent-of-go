@@ -2,45 +2,69 @@ package main
 
 import "testing"
 
-func TestWhatFloor(t *testing.T) {
+func TestLookSay(t *testing.T) {
 	cases := []struct {
-		in   string
-		want int
+		in, want string
 	}{
-		{"(())", 0},
-		{"()()", 0},
-		{"(((", 3},
-		{"(()(()(", 3},
-		{"))(((((", 3},
-		{"())", -1},
-		{"))(", -1},
-		{")))", -3},
-		{")())())", -3},
+		{"1", "11"},
+		{"11", "21"},
+		{"21", "1211"},
+		{"1211", "111221"},
+		{"111221", "312211"},
 	}
 
 	for _, c := range cases {
-		got := WhatFloor(c.in)
+		got := LookSay(c.in)
 		if got != c.want {
-			t.Errorf("WhatFloor(%q) == %d, want %d", c.in, got, c.want)
+			t.Errorf("LookSay(%s) == %s, want %s", c.in, got, c.want)
 		}
 	}
 }
+func equal(a, b []string) bool {
+	if len(a) != len(b) {
+		return false
+	}
 
-func TestDistanceToFloor(t *testing.T) {
+	for i := range a {
+		if a[i] != b[i] {
+			return false
+		}
+	}
+
+	return true
+}
+
+func TestChomps(t *testing.T) {
 	cases := []struct {
-		instructions string
-		floor        int
-		want         int
+		in   string
+		want []string
 	}{
-		{")", -1, 1},
-		{"()())", -1, 5},
+		{"1", []string{
+			"1",
+		}},
+		{"11", []string{
+			"11",
+		}},
+		{"21", []string{
+			"2",
+			"1",
+		}},
+		{"1211", []string{
+			"1",
+			"2",
+			"11",
+		}},
+		{"111221", []string{
+			"111",
+			"22",
+			"1",
+		}},
 	}
 
 	for _, c := range cases {
-		got := DistanceToFloor(c.instructions, c.floor)
-		if got != c.want {
-			t.Errorf("DistanceToFloor(%q, %d) == %d, want %d",
-				c.instructions, c.floor, got, c.want)
+		got := chomps(c.in)
+		if !equal(got, c.want) {
+			t.Errorf("Chomps(%s) == %s, want %s", c.in, got, c.want)
 		}
 	}
 }
