@@ -36,20 +36,20 @@ func sumJSONWithIgnore(data []byte) int {
 }
 
 func traverseSum(json interface{}, sum *int) {
-	switch vv := json.(type) {
+	switch value := json.(type) {
 	case string:
 	case float64:
-		*sum = *sum + int(vv)
+		*sum = *sum + int(value)
 	case []interface{}:
-		for _, v := range vv {
+		for _, v := range value {
 			traverseSum(v, sum)
 		}
 	case map[string]interface{}:
 		ignore := false
-		for _, v := range vv {
-			switch t := v.(type) {
+		for _, v := range value {
+			switch value := v.(type) {
 			case string:
-				if t == "red" {
+				if value == "red" {
 					ignore = true
 				}
 			}
@@ -57,11 +57,11 @@ func traverseSum(json interface{}, sum *int) {
 		if ignore == true {
 			return
 		}
-		for _, v := range vv {
+		for _, v := range value {
 			traverseSum(v, sum)
 		}
 	default:
-		fmt.Println(vv, "is of a type I don't know how to handle")
+		fmt.Println(value, "is of a type I don't know how to handle")
 	}
 }
 
@@ -80,6 +80,7 @@ func inputLine() string {
 
 func main() {
 	input := inputLine()
-	fmt.Println("Part 1:", sum(input))
-	fmt.Println("Part 2:", sumJSONWithIgnore([]byte(input)))
+	fmt.Println("Sum of all numbers", sum(input))
+	fmt.Println("Sum of all numbers without \"red\" values",
+		sumJSONWithIgnore([]byte(input)))
 }
