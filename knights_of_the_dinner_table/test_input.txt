@@ -1,0 +1,12 @@
+Alice 54 Bob
+Alice -79 Carol
+Alice -2 David
+Bob 83 Alice
+Bob -7 Carol
+Bob -63 David
+Carol -62 Alice
+Carol 60 Bob
+Carol 55 David
+David 46 Alice
+David -7 Bob
+David 41 Carol
