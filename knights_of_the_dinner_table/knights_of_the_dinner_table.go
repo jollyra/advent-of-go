@@ -33,14 +33,9 @@ func uniqueNames(lines []string) []string {
 	for _, line := range lines {
 		words := strings.Split(line, " ")
 		n0, n1 := string(words[0]), string(words[2])
-		if stringutil.IndexOf(names, n0) == -1 {
-			names = append(names, n0)
-		}
-		if stringutil.IndexOf(names, n1) == -1 {
-			names = append(names, n1)
-		}
+		names = append(names, n0, n1)
 	}
-	return names
+	return stringutil.Unique(names)
 }
 
 func parseRelationships(lines []string) map[string]int {
