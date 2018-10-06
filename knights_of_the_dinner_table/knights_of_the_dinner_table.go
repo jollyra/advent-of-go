@@ -3,6 +3,8 @@ package main
 import (
 	"bufio"
 	"fmt"
+	"github.com/jollyra/numutil"
+	"github.com/jollyra/stringutil"
 	"log"
 	"os"
 	"strconv"
@@ -26,24 +28,15 @@ func inputLines(filename string) []string {
 	return lines
 }
 
-func indexOf(strings []string, target string) int {
-	for i, s := range strings {
-		if s == target {
-			return i
-		}
-	}
-	return -1
-}
-
 func uniqueNames(lines []string) []string {
 	names := make([]string, 0)
 	for _, line := range lines {
 		words := strings.Split(line, " ")
 		n0, n1 := string(words[0]), string(words[2])
-		if indexOf(names, n0) == -1 {
+		if stringutil.IndexOf(names, n0) == -1 {
 			names = append(names, n0)
 		}
-		if indexOf(names, n1) == -1 {
+		if stringutil.IndexOf(names, n1) == -1 {
 			names = append(names, n1)
 		}
 	}
@@ -63,26 +56,6 @@ func parseRelationships(lines []string) map[string]int {
 		relationships[key] = rating
 	}
 	return relationships
-}
-
-func copyStringSlice(xs []string) []string {
-	ys := make([]string, len(xs))
-	for i := range xs {
-		ys[i] = xs[i]
-	}
-	return ys
-}
-
-func permutations(dest *[][]string, xs []string, unfixed int) {
-	if len(xs)-1 == unfixed {
-		*dest = append(*dest, xs)
-	}
-
-	for i := unfixed; i < len(xs); i++ {
-		ys := copyStringSlice(xs)
-		ys[unfixed], ys[i] = ys[i], ys[unfixed]
-		permutations(dest, ys, unfixed+1)
-	}
 }
 
 func totalHappiness(relationships map[string]int, seatingArrangement []string) int {
@@ -108,29 +81,17 @@ func totalHappiness(relationships map[string]int, seatingArrangement []string) i
 	return sum
 }
 
-func max(xs ...int) int {
-	max := xs[0]
-	for _, x := range xs {
-		if x > max {
-			max = x
-		}
-	}
-	return max
-}
-
 func main() {
 	lines := inputLines("/Users/nrahkola/go/src/github.com/jollyra/" +
 		"advent-of-go/knights_of_the_dinner_table/input.txt")
 	names := uniqueNames(lines)
-	fmt.Println(names)
 	relationships := parseRelationships(lines)
-	fmt.Println(relationships)
 	ps := make([][]string, 0)
-	permutations(&ps, names, 0)
+	stringutil.Permutations(&ps, names, 0)
 
 	tables := make([]int, len(ps))
 	for _, p := range ps {
 		tables = append(tables, totalHappiness(relationships, p))
 	}
-	fmt.Println(max(tables...))
+	fmt.Println("The max happiness seating arrangement it", numutil.Max(tables...))
 }
