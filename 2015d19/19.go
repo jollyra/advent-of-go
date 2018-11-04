@@ -1,10 +1,8 @@
 package main
 
 import (
-	"bufio"
 	"fmt"
 	"github.com/jollyra/stringutil"
-	"log"
 	"os"
 	"regexp"
 	"strings"
@@ -15,16 +13,10 @@ type mutation struct {
 }
 
 func (m mutation) String() string {
-	return fmt.Sprintf("%s => %s", m.Before, m.After)
+	return fmt.Sprintf("%s=>%s", m.Before, m.After)
 }
 
-var mutations = []mutation{
-	mutation{"H", "HO"},
-	mutation{"H", "OH"},
-	mutation{"O", "HH"},
-}
-
-func mutator(mutations []mutation, str string, n int) []string {
+func mutator(mutations []mutation, str string) []string {
 	results := make([]string, 0)
 	bytes := []byte(str)
 	for _, m := range mutations {
@@ -39,21 +31,16 @@ func mutator(mutations []mutation, str string, n int) []string {
 	return results
 }
 
-func inputLines(filename string) []string {
-	file, err := os.Open(filename)
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer file.Close()
+func reverseMutation(m mutation) mutation {
+	return mutation{m.After, m.Before}
+}
 
-	scanner := bufio.NewScanner(file)
-	scanner.Split(bufio.ScanLines)
-
-	var lines []string
-	for scanner.Scan() {
-		lines = append(lines, scanner.Text())
+func reverseMutations(ms []mutation) []mutation {
+	reversed := make([]mutation, 0)
+	for _, m := range ms {
+		reversed = append(reversed, reverseMutation(m))
 	}
-	return lines
+	return reversed
 }
 
 func parseMutations(lines []string) []mutation {
@@ -67,15 +54,40 @@ func parseMutations(lines []string) []mutation {
 	return mutations
 }
 
-func main() {
-	lines := inputLines(os.Args[1])
-	mutations := parseMutations(lines)
-	for _, m := range mutations {
-		fmt.Println(m)
-	}
-	molecule := "CRnSiRnCaPTiMgYCaPTiRnFArSiThFArCaSiThSiThPBCaCaSiRnSiRnTiTiMgArPBCaPMgYPTiRnFArFArCaSiRnBPMgArPRnCaPTiRnFArCaSiThCaCaFArPBCaCaPTiTiRnFArCaSiRnSiAlYSiThRnFArArCaSiRnBFArCaCaSiRnSiThCaCaCaFYCaPTiBCaSiThCaSiThPMgArSiRnCaPBFYCaCaFArCaCaCaCaSiThCaSiRnPRnFArPBSiThPRnFArSiRnMgArCaFYFArCaSiRnSiAlArTiTiTiTiTiTiTiRnPMgArPTiTiTiBSiRnSiAlArTiTiRnPMgArCaFYBPBPTiRnSiRnMgArSiThCaFArCaSiThFArPRnFArCaSiRnTiBSiThSiRnSiAlYCaFArPRnFArSiThCaFArCaCaSiThCaCaCaSiRnPRnCaFArFYPMgArCaPBCaPBSiRnFYPBCaFArCaSiAl"
-	results := mutator(mutations, molecule, 1)
+func calibrate(mutations []mutation, molecule string) int {
+	results := mutator(mutations, molecule)
 	unique := stringutil.Unique(results)
-	fmt.Println(unique)
-	fmt.Println("# of unique molecules is", len(unique))
+	return len(unique)
+}
+
+func reverseEngineer(mutations []mutation, molecule string) int {
+	mutations = reverseMutations(mutations)
+	fmt.Printf("Reverse Engineering %s with %d mutations\n",
+		molecule, len(mutations))
+	gen := []string{molecule}
+	for i := 0; i < 100; i++ {
+		fmt.Println("step", i)
+		nextGen := make([]string, 0)
+		gen = stringutil.Unique(gen)
+		for _, mol := range gen {
+			if mol == "e" {
+				return i
+			}
+			nextGen = append(nextGen, mutator(mutations, mol)...)
+		}
+		gen = nextGen
+	}
+	return -1
+}
+
+func main() {
+	var molecule = "CRnSiRnCaPTiMgYCaPTiRnFArSiThFArCaSiThSiThPBCaCaSiRnSiRnTiTiMgArPBCaPMgYPTiRnFArFArCaSiRnBPMgArPRnCaPTiRnFArCaSiThCaCaFArPBCaCaPTiTiRnFArCaSiRnSiAlYSiThRnFArArCaSiRnBFArCaCaSiRnSiThCaCaCaFYCaPTiBCaSiThCaSiThPMgArSiRnCaPBFYCaCaFArCaCaCaCaSiThCaSiRnPRnFArPBSiThPRnFArSiRnMgArCaFYFArCaSiRnSiAlArTiTiTiTiTiTiTiRnPMgArPTiTiTiBSiRnSiAlArTiTiRnPMgArCaFYBPBPTiRnSiRnMgArSiThCaFArCaSiThFArPRnFArCaSiRnTiBSiThSiRnSiAlYCaFArPRnFArSiThCaFArCaCaSiThCaCaCaSiRnPRnCaFArFYPMgArCaPBCaPBSiRnFYPBCaFArCaSiAl"
+	lines := stringutil.InputLines(os.Args[1])
+	mutations := parseMutations(lines)
+
+	num := calibrate(mutations, molecule)
+	fmt.Println("Calibrating... # of num molecules is", num)
+
+	steps := reverseEngineer(mutations, molecule)
+	fmt.Printf("%d steps to reverse engineer molecule\n", steps)
 }
