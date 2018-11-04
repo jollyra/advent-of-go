@@ -31,18 +31,6 @@ func mutator(mutations []mutation, str string) []string {
 	return results
 }
 
-func reverseMutation(m mutation) mutation {
-	return mutation{m.After, m.Before}
-}
-
-func reverseMutations(ms []mutation) []mutation {
-	reversed := make([]mutation, 0)
-	for _, m := range ms {
-		reversed = append(reversed, reverseMutation(m))
-	}
-	return reversed
-}
-
 func parseMutations(lines []string) []mutation {
 	mutations := make([]mutation, 0)
 	for _, line := range lines {
@@ -60,26 +48,6 @@ func calibrate(mutations []mutation, molecule string) int {
 	return len(unique)
 }
 
-func reverseEngineer(mutations []mutation, molecule string) int {
-	mutations = reverseMutations(mutations)
-	fmt.Printf("Reverse Engineering %s with %d mutations\n",
-		molecule, len(mutations))
-	gen := []string{molecule}
-	for i := 0; i < 100; i++ {
-		fmt.Println("step", i)
-		nextGen := make([]string, 0)
-		gen = stringutil.Unique(gen)
-		for _, mol := range gen {
-			if mol == "e" {
-				return i
-			}
-			nextGen = append(nextGen, mutator(mutations, mol)...)
-		}
-		gen = nextGen
-	}
-	return -1
-}
-
 func main() {
 	var molecule = "CRnSiRnCaPTiMgYCaPTiRnFArSiThFArCaSiThSiThPBCaCaSiRnSiRnTiTiMgArPBCaPMgYPTiRnFArFArCaSiRnBPMgArPRnCaPTiRnFArCaSiThCaCaFArPBCaCaPTiTiRnFArCaSiRnSiAlYSiThRnFArArCaSiRnBFArCaCaSiRnSiThCaCaCaFYCaPTiBCaSiThCaSiThPMgArSiRnCaPBFYCaCaFArCaCaCaCaSiThCaSiRnPRnFArPBSiThPRnFArSiRnMgArCaFYFArCaSiRnSiAlArTiTiTiTiTiTiTiRnPMgArPTiTiTiBSiRnSiAlArTiTiRnPMgArCaFYBPBPTiRnSiRnMgArSiThCaFArCaSiThFArPRnFArCaSiRnTiBSiThSiRnSiAlYCaFArPRnFArSiThCaFArCaCaSiThCaCaCaSiRnPRnCaFArFYPMgArCaPBCaPBSiRnFYPBCaFArCaSiAl"
 	lines := stringutil.InputLines(os.Args[1])
@@ -88,6 +56,5 @@ func main() {
 	num := calibrate(mutations, molecule)
 	fmt.Println("Calibrating... # of num molecules is", num)
 
-	steps := reverseEngineer(mutations, molecule)
-	fmt.Printf("%d steps to reverse engineer molecule\n", steps)
+	// Part 2 solved by hand!
 }
