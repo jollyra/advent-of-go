@@ -2,121 +2,50 @@ package main
 
 import (
 	"fmt"
-	// "github.com/jollyra/numutil"
-	"github.com/jollyra/stringutil"
-	"os"
-	"strings"
+	"github.com/jollyra/go-advent-util"
+	"github.com/jollyra/go-grid"
 )
 
-type grid [100][100]byte
+type p = grid.Point
 
-func (g grid) String() string {
-	var b strings.Builder
-	for _, row := range g {
-		for _, x := range row {
-			fmt.Fprintf(&b, "%c", x)
-		}
-		fmt.Fprintf(&b, "\n")
-	}
-	return b.String()
-}
+var on = byte('#')
+var off = byte('.')
 
-func (g *grid) Copy() grid {
-	copy := grid{}
-	for y := range g {
-		for x := range g[y] {
-			copy[y][x] = g[y][x]
-		}
-	}
-	return copy
-}
-
-func (g *grid) isInBounds(x, y int) bool {
-	size := len(g)
-	if 0 <= x && x < size && 0 <= y && y < size {
-		return true
-	}
-	return false
-}
-
-type point struct{ X, Y int }
-
-func (p *point) equals(q point) bool {
-	if p.X == q.X && p.Y == q.Y {
-		return true
-	}
-	return false
-}
-
-func (g *grid) Neighbours8(x, y int) []point {
-	points := []point{
-		point{x + 1, y},
-		point{x + 1, y + 1},
-		point{x, y + 1},
-		point{x - 1, y + 1},
-		point{x - 1, y},
-		point{x - 1, y - 1},
-		point{x, y - 1},
-		point{x + 1, y - 1},
-	}
-
-	pointsInBounds := make([]point, 0)
-	for _, p := range points {
-		if g.isInBounds(p.X, p.Y) {
-			pointsInBounds = append(pointsInBounds, p)
-		}
-	}
-
-	return pointsInBounds
-}
-
-func newGrid(lines []string) grid {
-	grid := grid{}
-	for y := range lines {
-		for x := range lines[y] {
-			grid[y][x] = lines[y][x]
-		}
-	}
-	return grid
-}
-func isCorner(p point) bool {
-	corners := []point{point{0, 0}, point{0, 99}, point{99, 0}, point{99, 99}}
+func isCorner(point p) bool {
+	corners := []p{p{0, 0}, p{0, 99}, p{99, 0}, p{99, 99}}
 	for _, c := range corners {
-		if c.equals(p) {
+		if c.Equals(point) {
 			return true
 		}
 	}
 	return false
 }
 
-var on = byte('#')
-var off = byte('.')
-
-func update(grid grid) grid {
+func update(grid *grid.Grid) *grid.Grid {
 	nextGrid := grid.Copy()
-	for y := range grid {
-		for x := range grid[y] {
+	for y := range grid.Grid {
+		for x := range grid.Grid[y] {
 
-			if isCorner(point{x, y}) {
-				grid[y][x] = on
+			if isCorner(p{x, y}) {
+				grid.Grid[y][x] = on
 				continue
 			}
 
 			ns := grid.Neighbours8(x, y)
 			var numOn int
 			for _, n := range ns {
-				if grid[n.Y][n.X] == on {
+				if grid.Grid[n.Y][n.X] == on {
 					numOn++
 				}
 			}
 
-			if grid[y][x] == on {
+			if grid.Grid[y][x] == on {
 				if numOn != 2 && numOn != 3 {
-					nextGrid[y][x] = off
+					nextGrid.Grid[y][x] = off
 				}
 			} else {
 				if numOn == 3 {
-					nextGrid[y][x] = on
+					nextGrid.Grid[y][x] = on
 				}
 			}
 
@@ -126,11 +55,21 @@ func update(grid grid) grid {
 	return nextGrid
 }
 
-func countOnLights(g grid) int {
+func gridFromLines(lines []string) *grid.Grid {
+	grid := grid.NewGrid(len(lines), len(lines))
+	for y := range lines {
+		for x := range lines[y] {
+			grid.Grid[y][x] = lines[y][x]
+		}
+	}
+	return grid
+}
+
+func countOnLights(g *grid.Grid) int {
 	count := 0
-	for y := range g {
-		for x := range g[y] {
-			if g[y][x] == on {
+	for y := range g.Grid {
+		for x := range g.Grid[y] {
+			if g.Grid[y][x] == on {
 				count++
 			}
 		}
@@ -138,7 +77,7 @@ func countOnLights(g grid) int {
 	return count
 }
 
-func animationLoop(grid grid, steps int) grid {
+func animationLoop(grid *grid.Grid, steps int) *grid.Grid {
 	for i := 0; i < steps; i++ {
 		grid = update(grid)
 	}
@@ -146,8 +85,8 @@ func animationLoop(grid grid, steps int) grid {
 }
 
 func main() {
-	lines := stringutil.InputLines(os.Args[1])
-	grid := newGrid(lines)
+	lines := advent.InputLines(advent.MustGetArg(1))
+	grid := gridFromLines(lines)
 	fmt.Println(grid)
 	grid = animationLoop(grid, 100)
 	fmt.Println(grid)
