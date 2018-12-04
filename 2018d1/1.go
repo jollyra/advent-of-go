@@ -31,7 +31,7 @@ func firstRepeat(freqs []int) int {
 
 func main() {
 	lines := advent.InputLines(os.Args[1])
-	freqs := advent.LinesToInts(lines)
+	freqs := advent.StringsToInts(lines)
 	fmt.Println("Part 1: Ended on frequency", freq(freqs))
 	fmt.Println("Part 2: First repeated freqency", firstRepeat(freqs))
 }
