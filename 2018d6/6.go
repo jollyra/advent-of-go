@@ -5,65 +5,17 @@ import (
 	"fmt"
 
 	"github.com/jollyra/go-advent-util"
+	. "github.com/jollyra/go-advent-util/point"
 )
 
-var big = 1<<63 - 1
-
-var minX = big
-var minY = big
+var minX = advent.BigInt
+var minY = advent.BigInt
 var maxX = 0
 var maxY = 0
 
-type coordlist map[point]int
+type coordlist map[Point]int
 
-func newCoordList() coordlist { return make(map[point]int) }
-
-type point struct{ X, Y int }
-
-func (p point) String() string { return fmt.Sprintf("point{x=%d, y=%d}", p.X, p.Y) }
-
-func (p point) Equals(q point) bool {
-	if p.X == q.X && p.Y == q.Y {
-		return true
-	}
-	return false
-}
-
-// neighbours4 returns all neighbour of point (x, y) including diagonals.
-func neighbours4(p point) []point {
-	points := []point{
-		point{p.X + 1, p.Y},
-		point{p.X, p.Y + 1},
-		point{p.X - 1, p.Y},
-		point{p.X, p.Y - 1},
-	}
-	return points
-}
-
-func manhattanDistance(a, b point) int {
-	return abs(a.X-b.X) + abs(a.Y-b.Y)
-}
-
-func max(a, b int) int {
-	if b > a {
-		return b
-	}
-	return a
-}
-
-func min(a, b int) int {
-	if b < a {
-		return b
-	}
-	return a
-}
-
-func abs(x int) int {
-	if x < 0 {
-		return -x
-	}
-	return x
-}
+func newCoordList() coordlist { return make(map[Point]int) }
 
 // Return the index of the smallest int in xs. Return error if there's a tie.
 func minIntSlice(xs []int) (int, error) {
@@ -88,55 +40,36 @@ func minIntSlice(xs []int) (int, error) {
 	return minIndex, nil
 }
 
-func maxInts(xs ...int) int {
-	max := xs[0]
-	for _, x := range xs {
-		if x > max {
-			max = x
-		}
-	}
-	return max
-}
-
-func contains(ps []point, q point) bool {
-	for _, p := range ps {
-		if p.Equals(q) {
-			return true
-		}
-	}
-	return false
-}
-
-func onBorder(p point) bool {
+func onBorder(p Point) bool {
 	if p.X == minX || p.X == maxX || p.Y == minY || p.Y == maxY {
 		return true
 	}
 	return false
 }
 
-func parsePoints(lines []string) []point {
-	points := make([]point, 0, len(lines))
+func parsePoints(lines []string) []Point {
+	points := make([]Point, 0, len(lines))
 	for _, line := range lines {
 		var x, y int
 		fmt.Sscanf(line, "%d, %d", &x, &y)
-		points = append(points, point{x, y})
+		points = append(points, Point{x, y})
 
-		minX = min(minX, x)
-		maxX = max(maxX, x)
-		minY = min(minY, y)
-		maxY = max(maxY, y)
+		minX = advent.Min(minX, x)
+		maxX = advent.Max(maxX, x)
+		minY = advent.Min(minY, y)
+		maxY = advent.Max(maxY, y)
 	}
 	return points
 }
 
-func buildGrid(coords coordlist, locations []point) coordlist {
+func buildGrid(coords coordlist, locations []Point) coordlist {
 	for x := minX; x <= maxX; x++ {
 		for y := minY; y <= maxY; y++ {
-			p := point{x, y}
-			// Check how far point p is from each location
+			p := Point{x, y}
+			// Check how far Point p is from each location
 			dists := make([]int, 0)
 			for _, loc := range locations {
-				dists = append(dists, manhattanDistance(loc, p))
+				dists = append(dists, ManhattanDistance(loc, p))
 			}
 			closestLocIndex, err := minIntSlice(dists)
 			if err != nil {
@@ -150,16 +83,16 @@ func buildGrid(coords coordlist, locations []point) coordlist {
 	return coords
 }
 
-func floodfillArea(cl coordlist, loc point) (int, error) {
-	horizon := make([]point, 0)
+func floodfillArea(cl coordlist, loc Point) (int, error) {
+	horizon := make([]Point, 0)
 	horizon = append(horizon, loc)
-	visited := make([]point, 0)
+	visited := make([]Point, 0)
 	area := 0
 	for len(horizon) > 0 {
-		var p point
+		var p Point
 		p, horizon = horizon[0], horizon[1:]
 
-		if contains(visited, p) {
+		if Contains(visited, p) {
 			continue
 		}
 
@@ -171,8 +104,8 @@ func floodfillArea(cl coordlist, loc point) (int, error) {
 			area++
 			visited = append(visited, p)
 
-			for _, q := range neighbours4(p) {
-				if !contains(visited, q) && !contains(horizon, q) {
+			for _, q := range p.Neighbours4() {
+				if !Contains(visited, q) && !Contains(horizon, q) {
 					horizon = append(horizon, q)
 				}
 			}
@@ -182,14 +115,14 @@ func floodfillArea(cl coordlist, loc point) (int, error) {
 	return area, nil
 }
 
-func wellConnectedAreaSize(locs []point) int {
+func wellConnectedAreaSize(locs []Point) int {
 	max := 10000
 	area := 0
 	for x := 0; x < 500; x++ {
 		for y := 0; y < 500; y++ {
 			dist := 0
 			for _, q := range locs {
-				dist += manhattanDistance(point{x, y}, q)
+				dist += ManhattanDistance(Point{x, y}, q)
 			}
 			if dist < max {
 				area++
@@ -199,7 +132,7 @@ func wellConnectedAreaSize(locs []point) int {
 	return area
 }
 
-func findLargestFiniteArea(coords coordlist, locations []point) int {
+func findLargestFiniteArea(coords coordlist, locations []Point) int {
 	areas := make([]int, 0)
 	for _, loc := range locations {
 		area, err := floodfillArea(coords, loc)
@@ -207,7 +140,7 @@ func findLargestFiniteArea(coords coordlist, locations []point) int {
 			areas = append(areas, area)
 		}
 	}
-	return maxInts(areas...)
+	return advent.MaxInts(areas...)
 }
 
 func main() {
