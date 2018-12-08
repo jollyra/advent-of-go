@@ -7,21 +7,39 @@ import (
 	"github.com/jollyra/go-advent-util"
 )
 
-type runeHeap []rune
+type job struct {
+	Timer int
+	Name  rune
+}
 
-func (h runeHeap) Len() int           { return len(h) }
-func (h runeHeap) Less(i, j int) bool { return h[i] < h[j] }
-func (h runeHeap) Swap(i, j int)      { h[i], h[j] = h[j], h[i] }
+func (j *job) String() string { return fmt.Sprintf("%c %d", j.Name, j.Timer) }
 
-func (h *runeHeap) Push(x interface{}) {
-	if contains(*h, x.(rune)) {
+func (j job) Equal(r rune) bool { return j.Name == r }
+
+func containsJobs(xs []*job, r rune) bool {
+	for _, x := range xs {
+		if x.Equal(r) {
+			return true
+		}
+	}
+	return false
+}
+
+type jobHeap []*job
+
+func (h jobHeap) Len() int           { return len(h) }
+func (h jobHeap) Less(i, j int) bool { return h[i].Name < h[j].Name }
+func (h jobHeap) Swap(i, j int)      { h[i], h[j] = h[j], h[i] }
+
+func (h *jobHeap) Push(x interface{}) {
+	if containsJobs(*h, x.(*job).Name) {
 		return
 	}
 
-	*h = append(*h, x.(rune))
+	*h = append(*h, x.(*job))
 }
 
-func (h *runeHeap) Pop() interface{} {
+func (h *jobHeap) Pop() interface{} {
 	old := *h
 	n := len(old)
 	x := old[n-1]
@@ -76,76 +94,95 @@ func contains(xs []rune, y rune) bool {
 	return false
 }
 
-func dependenciesMet(dependency, complete []rune) bool {
+func dependenciesMet(dependency []rune, complete []*job) bool {
 	if len(dependency) == 0 {
 		return true
 	}
 
 	for _, d := range dependency {
-		if !contains(complete, d) {
+		if !containsJobs(complete, d) {
 			return false
+		}
+		for i := range complete {
+			if complete[i].Name == d && complete[i].Timer > 0 {
+				return false
+			}
 		}
 	}
 	return true
 }
 
-func bfs(edges, dependency map[rune][]rune, starts []rune) []rune {
-	complete := make([]rune, 0, len(edges))
-	horizon := &runeHeap{}
-	for _, start := range starts {
-		heap.Push(horizon, start)
-	}
-	heap.Init(horizon)
-	for horizon.Len() > 0 {
-		fmt.Println(horizon)
-
-		var cur rune
-		blocked := make([]rune, 0)
+func getCurrentN(horizon *jobHeap, deps map[rune][]rune, complete []*job, n int) []*job {
+	curs := make([]*job, 0)
+	for i := 0; i < n; i++ {
+		var cur *job
+		blocked := make([]*job, 0)
 		found := false
 		for found == false {
-			cur = heap.Pop(horizon).(rune)
-			if dependenciesMet(dependency[cur], complete) {
+			if horizon.Len() == 0 {
+				break
+			}
+			cur = heap.Pop(horizon).(*job)
+			if dependenciesMet(deps[cur.Name], complete) {
 				for _, r := range blocked {
 					heap.Push(horizon, r)
 				}
 				found = true
+				curs = append(curs, cur)
 			} else {
 				blocked = append(blocked, cur)
 			}
 		}
+	}
+	return curs
+}
 
-		complete = append(complete, cur)
-		for _, next := range edges[cur] {
-			heap.Push(horizon, next)
+func countIncomplete(jobs []*job) int {
+	count := 0
+	for i := range jobs {
+		if jobs[i].Timer > 0 {
+			count++
+		}
+	}
+	return count
+}
+
+func bfs(edges, dependency map[rune][]rune, starts []rune) int {
+	elves := 5
+	path := make([]*job, 0)
+	complete := make([]*job, 0)
+	horizon := &jobHeap{}
+	for _, start := range starts {
+		heap.Push(horizon, &job{Name: start, Timer: int(start) - 4})
+	}
+	heap.Init(horizon)
+	complete = append(complete, getCurrentN(horizon, dependency, complete, elves)...)
+	timer := 0
+	for countIncomplete(complete) > 0 {
+		timer++
+		for _, cur := range complete {
+			fmt.Println(cur)
+			if cur.Timer == 0 {
+				continue
+			}
+			cur.Timer--
+			if cur.Timer == 0 {
+				path = append(path, cur)
+				for _, next := range edges[cur.Name] {
+					heap.Push(horizon, &job{Name: next, Timer: int(next) - 4})
+				}
+				newJobs := elves - countIncomplete(complete)
+				complete = append(complete,
+					getCurrentN(horizon, dependency, complete, newJobs)...)
+			}
 		}
 	}
 
-	return complete
+	return timer
 }
 
 func main() {
 	lines := advent.InputLines(advent.MustGetArg(1))
 	edges, dependency, starts := parseEdges(lines)
-
-	for k, v := range edges {
-		fmt.Printf("edge %c ->", k)
-		for i := range v {
-			fmt.Printf("%c", v[i])
-		}
-		fmt.Println()
-	}
-
-	for k, v := range dependency {
-		fmt.Printf("dependency %c ->", k)
-		for i := range v {
-			fmt.Printf("%c", v[i])
-		}
-		fmt.Println()
-	}
-
-	path := bfs(edges, dependency, starts)
-	for i := range path {
-		fmt.Printf("%c", path[i])
-	}
-	fmt.Println()
+	fmt.Println(bfs(edges, dependency, starts))
 }
