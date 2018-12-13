@@ -142,33 +142,52 @@ func showTracks(cl map[point]rune, carts []*cart, dx, dy int) {
 	fmt.Printf("\n")
 }
 
-func collision(carts []*cart) (point, error) {
+func remove(carts []*cart, c *cart) []*cart {
+	cs := make([]*cart, 0)
 	for i := range carts {
-		for j := range carts {
-			if i != j {
-				if carts[i].pos.Equals(carts[j].pos) {
-					return carts[i].pos, nil
+		if carts[i] != c {
+			cs = append(cs, carts[i])
+		}
+	}
+	return cs
+}
+
+func collision(carts []*cart) ([]*cart, point, error) {
+	for _, c1 := range carts {
+		for _, c2 := range carts {
+			if c1 != c2 {
+				if c1.pos.Equals(c2.pos) {
+					carts = remove(carts, c1)
+					carts = remove(carts, c2)
+					return carts, c1.pos, nil
 				}
 			}
 		}
 	}
-	return point{}, fmt.Errorf("No collisions")
+	return carts, point{}, fmt.Errorf("No collisions")
 }
 
 func main() {
 	lines := advent.InputLines(advent.MustGetArg(1))
 	grid, carts, dx, dy := parseTracks(lines)
-	for {
+
+	for len(carts) > 1 {
 		sortedCarts := findCarts(grid, carts, dx, dy)
 		for _, cart := range sortedCarts {
-			showTracks(grid, carts, dx, dy)
+			// showTracks(grid, carts, dx, dy)
 			cart.Update(grid)
-			if pos, err := collision(carts); err == nil {
+			if remainingCarts, pos, err := collision(carts); err == nil {
+				carts = remainingCarts
 				print("collision at", pos)
-				showTracks(grid, carts, dx, dy)
-				return
+			} else {
+				// println()
 			}
-			time.Sleep(500 * time.Millisecond)
+			time.Sleep(0 * time.Millisecond)
+			// time.Sleep(500 * time.Millisecond)
 		}
+	}
+
+	for _, cart := range carts {
+		print(cart)
 	}
 }
