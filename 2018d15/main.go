@@ -13,77 +13,36 @@ var print = fmt.Println
 type point = util.Point
 
 type stageType struct {
-	Elves   map[point]*elf
-	Goblins map[point]*goblin
-	Walls   map[point]*wall
-	Dx, Dy  int
+	Grid   [][]*actor
+	Dx, Dy int
 }
 
-type entity interface {
-	Rune() rune
-}
-
-type actor interface {
-	Update()
-}
-
-type elf struct {
+type actor struct {
+	Type        rune
 	Pos         point
 	Health      int
 	AttackPower int
 }
 
-type goblin struct {
-	Pos         point
-	Health      int
-	AttackPower int
-}
-
-type wall struct{ r rune }
-
-func (e *elf) Rune() rune    { return 'E' }
-func (g *goblin) Rune() rune { return 'G' }
-func (w *wall) Rune() rune   { return w.r }
-
 // Update returns true if the actor made a move, false otherwise.
-func (e *goblin) Update(stage *stageType) bool {
-	path, err := readingOrderBFS(stage, e.Pos, 'E')
+func (a *actor) Update(stage *stageType) bool {
+	var target rune
+	if a.Type == 'E' {
+		target = 'G'
+	} else {
+		target = 'E'
+	}
+
+	path, err := readingOrderBFS(stage, a.Pos, target)
 	if err != nil {
 		return false
 	}
 	if len(path) >= 2 {
 		nxt := path[len(path)-2]
-		e.Pos = nxt
+		a.Pos = nxt
 		return true
 	}
 	return false
-}
-
-// Update returns true if the actor made a move, false otherwise.
-func (e *elf) Update(stage *stageType) bool {
-	path, err := readingOrderBFS(stage, e.Pos, 'G')
-	if err != nil {
-		return false
-	}
-	if len(path) >= 2 {
-		nxt := path[len(path)-2]
-		e.Pos = nxt
-		return true
-	}
-	return false
-}
-
-func (stage *stageType) GetEntity(p point) (entity, error) {
-	if v, ok := stage.Elves[p]; ok {
-		return v, nil
-	}
-	if v, ok := stage.Goblins[p]; ok {
-		return v, nil
-	}
-	if v, ok := stage.Walls[p]; ok {
-		return v, nil
-	}
-	return &elf{}, fmt.Errorf("No entity at %v", p)
 }
 
 func walk(ps map[point]point, q point) []point {
@@ -113,13 +72,12 @@ func readingOrderBFS(stage *stageType, src point, target rune) ([]point, error) 
 		cur := queue.Remove(queue.Front()).(point)
 		// print("cur", cur)
 		for _, nxt := range cur.Neighbours4() {
-			if entity, err := stage.GetEntity(nxt); err == nil {
-				if entity.Rune() == target {
-					prev[nxt] = cur
-					path := walk(prev, nxt)
-					return path, nil
-				}
-			} else {
+			cell := stage.Grid[nxt.Y][nxt.X]
+			if cell.Type == target {
+				prev[nxt] = cur
+				path := walk(prev, nxt)
+				return path, nil
+			} else if cell.Type == '.' {
 				if !util.Contains(seen, nxt) {
 					seen = append(seen, nxt)
 					queue.PushBack(nxt)
@@ -131,57 +89,17 @@ func readingOrderBFS(stage *stageType, src point, target rune) ([]point, error) 
 	return []point{}, fmt.Errorf("No available moves")
 }
 
-func (stage *stageType) ReadingOrderGenerator() func() (point, error) {
-	var x0, y0 int
-	return func() (point, error) {
-		x := x0
-		for y := y0; y < stage.Dy; y++ {
-			for x < stage.Dx {
-				nxt := point{x, y}
-				if _, ok := stage.Walls[nxt]; !ok {
-					x0 = x + 1
-					y0 = y
-					return nxt, nil
-				}
-				x++
-			}
-			x = 0
-		}
-		return point{}, fmt.Errorf("No more points")
-	}
-}
-
 func (stage *stageType) Show(xs []point, r rune) {
-	all := make(map[point]rune)
-	for k := range stage.Elves {
-		all[k] = 'E'
-	}
-	for k := range stage.Goblins {
-		all[k] = 'G'
-	}
-	for k := range stage.Walls {
-		all[k] = '#'
-	}
-
-	for _, p := range xs {
-		all[p] = r
-	}
-
 	var b strings.Builder
 	fmt.Fprint(&b, "   ")
 	for x := 0; x < stage.Dx; x++ {
 		fmt.Fprintf(&b, "%d", x%10) // Show x values across the top
 	}
 	fmt.Fprint(&b, "\n")
-	for y := 0; y < stage.Dy; y++ {
+	for y := range stage.Grid {
 		fmt.Fprintf(&b, "%2d ", y) // Show y values down the left
-		for x := 0; x < stage.Dx; x++ {
-			pos := point{x, y}
-			if r, ok := all[pos]; ok {
-				fmt.Fprintf(&b, "%c", r)
-			} else {
-				fmt.Fprint(&b, ".")
-			}
+		for _, x := range stage.Grid[y] {
+			fmt.Fprintf(&b, "%c", x.Type)
 		}
 		fmt.Fprint(&b, "\n")
 	}
@@ -189,20 +107,25 @@ func (stage *stageType) Show(xs []point, r rune) {
 }
 
 func parseStage(lines []string) *stageType {
-	walls := make(map[point]*wall)
-	elves := make(map[point]*elf)
-	goblins := make(map[point]*goblin)
+	grid := make([][]*actor, 0)
 	var dx, dy int
 	for y := range lines {
+		row := make([]*actor, 0)
 		for x := range lines[y] {
 			pos := point{x, y}
 			switch lines[y][x] {
 			case 'E':
-				elves[pos] = &elf{pos, 200, 3}
+				e := &actor{'E', pos, 200, 3}
+				row = append(row, e)
 			case 'G':
-				goblins[pos] = &goblin{pos, 200, 3}
+				g := &actor{'G', pos, 200, 3}
+				row = append(row, g)
 			case '#':
-				walls[pos] = &wall{'#'}
+				w := &actor{'#', pos, -1, -1}
+				row = append(row, w)
+			case '.':
+				w := &actor{'.', pos, -1, -1}
+				row = append(row, w)
 			}
 
 			if x > dx {
@@ -212,8 +135,21 @@ func parseStage(lines []string) *stageType {
 				dy = y
 			}
 		}
+		grid = append(grid, row)
 	}
-	return &stageType{elves, goblins, walls, dx + 1, dy + 1}
+	return &stageType{grid, dx + 1, dy + 1}
+}
+
+func getActorsReadingOrder(stage *stageType) []*actor {
+	actors := make([]*actor, 0)
+	for y := range stage.Grid {
+		for _, cell := range stage.Grid[y] {
+			if cell.Type == 'E' || cell.Type == 'G' {
+				actors = append(actors, cell)
+			}
+		}
+	}
+	return actors
 }
 
 func main() {
@@ -222,21 +158,11 @@ func main() {
 
 	stage.Show([]point{}, '+')
 	for i := 0; i < 4; i++ {
-		next := stage.ReadingOrderGenerator()
-		for p, err := next(); err == nil; p, err = next() {
-			if e, err := stage.GetEntity(p); err == nil {
-				switch v := e.(type) {
-				case *elf:
-					if v.Update(stage) == true {
-						delete(stage.Elves, p)
-						stage.Elves[v.Pos] = v
-					}
-				case *goblin:
-					if v.Update(stage) == true {
-						delete(stage.Goblins, p)
-						stage.Goblins[v.Pos] = v
-					}
-				}
+		for _, a := range getActorsReadingOrder(stage) {
+			prev := a.Pos
+			if a.Update(stage) == true {
+				stage.Grid[prev.Y][prev.X] = &actor{'.', point{}, 0, 0}
+				stage.Grid[a.Pos.Y][a.Pos.X] = a
 			}
 		}
 		stage.Show([]point{}, '+')
