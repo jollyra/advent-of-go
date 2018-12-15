@@ -4,18 +4,50 @@ import (
 	"fmt"
 
 	"github.com/jollyra/go-advent-util"
-	p "github.com/jollyra/go-advent-util/point"
+	util "github.com/jollyra/go-advent-util/point"
 	"strings"
 )
 
 var print = fmt.Println
 
-type point = p.Point
+type point = util.Point
 
 type actor struct {
+	Type        rune
 	Pos         point
 	Health      int
 	AttackPower int
+}
+
+// Update returns true if the actor made a move, false otherwise.
+func (a *actor) Update(stage *stageType) bool {
+	inRange := a.inRange(stage)
+	stage.Show(inRange, '?')
+	if len(inRange) == 0 {
+		return false
+	}
+
+	return true
+}
+
+func (a *actor) inRange(stage *stageType) []point {
+	inRange := make([]point, 0)
+	next := stage.ReadingOrderGenerator()
+	for p, err := next(); err == nil; p, err = next() {
+		for _, q := range p.Neighbours4() {
+			if a.Type == 'E' {
+				if _, ok := stage.Goblins[q]; ok {
+					inRange = append(inRange, p)
+				}
+			} else {
+				if _, ok := stage.Elves[q]; ok {
+					inRange = append(inRange, p)
+				}
+			}
+		}
+	}
+
+	return inRange
 }
 
 type stageType struct {
@@ -25,7 +57,42 @@ type stageType struct {
 	Dx, Dy  int
 }
 
-func (stage *stageType) String() string {
+func (stage *stageType) ReadingOrderGenerator() func() (point, error) {
+	var x0, y0 int
+	return func() (point, error) {
+		x := x0
+		for y := y0; y < stage.Dy; y++ {
+			for x < stage.Dx {
+				nxt := point{x, y}
+				if _, ok := stage.Walls[nxt]; !ok {
+					x0 = x + 1
+					y0 = y
+					return nxt, nil
+				}
+				x++
+			}
+			x = 0
+		}
+		return point{}, fmt.Errorf("No more points")
+	}
+}
+
+func (stage *stageType) Show(xs []point, r rune) {
+	all := make(map[point]rune)
+	for k := range stage.Elves {
+		all[k] = 'E'
+	}
+	for k := range stage.Goblins {
+		all[k] = 'G'
+	}
+	for k := range stage.Walls {
+		all[k] = '#'
+	}
+
+	for _, p := range xs {
+		all[p] = r
+	}
+
 	var b strings.Builder
 	fmt.Fprint(&b, "   ")
 	for x := 0; x < stage.Dx; x++ {
@@ -36,19 +103,15 @@ func (stage *stageType) String() string {
 		fmt.Fprintf(&b, "%2d ", y) // Show y values down the left
 		for x := 0; x < stage.Dx; x++ {
 			pos := point{x, y}
-			if _, ok := stage.Elves[pos]; ok {
-				fmt.Fprint(&b, "E")
-			} else if _, ok := stage.Goblins[pos]; ok {
-				fmt.Fprint(&b, "G")
-			} else if _, ok := stage.Walls[pos]; ok {
-				fmt.Fprint(&b, "#")
+			if r, ok := all[pos]; ok {
+				fmt.Fprintf(&b, "%c", r)
 			} else {
 				fmt.Fprint(&b, ".")
 			}
 		}
 		fmt.Fprint(&b, "\n")
 	}
-	return b.String()
+	print(b.String())
 }
 
 func parseStage(lines []string) *stageType {
@@ -61,9 +124,9 @@ func parseStage(lines []string) *stageType {
 			pos := point{x, y}
 			switch lines[y][x] {
 			case 'E':
-				elves[pos] = &actor{pos, 200, 3}
+				elves[pos] = &actor{'E', pos, 200, 3}
 			case 'G':
-				goblins[pos] = &actor{pos, 200, 3}
+				goblins[pos] = &actor{'G', pos, 200, 3}
 			case '#':
 				walls[pos] = '#'
 			}
@@ -82,5 +145,8 @@ func parseStage(lines []string) *stageType {
 func main() {
 	lines := advent.InputLines(advent.MustGetArg(1))
 	stage := parseStage(lines)
-	print(stage)
+	for _, elf := range stage.Elves {
+		elf.Update(stage)
+		return
+	}
 }
