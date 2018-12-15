@@ -24,6 +24,8 @@ type actor struct {
 	AttackPower int
 }
 
+func (a *actor) String() string { return fmt.Sprintf("%c(%d)", a.Type, a.Health) }
+
 // Update returns true if the actor made a move, false otherwise.
 func (a *actor) Update(stage *stageType) bool {
 	var target rune
@@ -41,6 +43,12 @@ func (a *actor) Update(stage *stageType) bool {
 		nxt := path[len(path)-2]
 		a.Pos = nxt
 		return true
+	}
+
+	other := stage.Grid[path[0].Y][path[0].X]
+	other.Health -= a.AttackPower
+	if other.Health <= 0 {
+		stage.Grid[other.Pos.Y][other.Pos.X] = &actor{'.', point{}, 0, 0}
 	}
 	return false
 }
@@ -63,14 +71,7 @@ func readingOrderBFS(stage *stageType, src point, target rune) ([]point, error) 
 	queue := list.New()
 	queue.PushBack(src)
 	for queue.Len() > 0 {
-		// print()
-		// print("queue")
-		// for e := queue.Front(); e != nil; e = e.Next() {
-		// 	print(e.Value.(point))
-		// }
-
 		cur := queue.Remove(queue.Front()).(point)
-		// print("cur", cur)
 		for _, nxt := range cur.Neighbours4() {
 			cell := stage.Grid[nxt.Y][nxt.X]
 			if cell.Type == target {
@@ -157,13 +158,14 @@ func main() {
 	stage := parseStage(lines)
 
 	stage.Show([]point{}, '+')
-	for i := 0; i < 4; i++ {
+	for i := 0; i < 47; i++ {
 		for _, a := range getActorsReadingOrder(stage) {
 			prev := a.Pos
 			if a.Update(stage) == true {
 				stage.Grid[prev.Y][prev.X] = &actor{'.', point{}, 0, 0}
 				stage.Grid[a.Pos.Y][a.Pos.X] = a
 			}
+			print(a)
 		}
 		stage.Show([]point{}, '+')
 	}
