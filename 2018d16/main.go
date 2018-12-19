@@ -120,6 +120,25 @@ func testSamples() {
 	}
 }
 
+func runProg(instructions []Instruction) [4]int {
+	regs := [4]int{}
+	for _, ins := range instructions {
+		regs = Run(ins, regs)
+	}
+	return regs
+}
+
 func main() {
 	testSamples()
+
+	lines := inputLines(os.Args[1])
+	instructions := make([]Instruction, 0)
+	for _, line := range lines {
+		var a, b, c, d int
+		fmt.Sscanf(line, "%d %d %d %d", &a, &b, &c, &d)
+		instructions = append(instructions, Instruction{a, b, c, d})
+	}
+
+	regs := runProg(instructions)
+	print(regs)
 }

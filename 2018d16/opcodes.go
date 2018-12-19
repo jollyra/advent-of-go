@@ -129,3 +129,8 @@ var OpcodeFuncMap = map[int]func(Instruction, [4]int) [4]int{
 	13: Eqri,
 	2:  Eqrr,
 }
+
+func Run(ins Instruction, regs [4]int) [4]int {
+	fn := OpcodeFuncMap[ins.Opcode]
+	return fn(ins, regs)
+}
