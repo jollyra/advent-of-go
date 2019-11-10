@@ -56,5 +56,5 @@ func main() {
 	// fmt.Println(play(5) + 1)
 	// fmt.Println(play(3018458) + 1)
 	fmt.Println(playV2(5))
-	fmt.Println(playV2(3018458))
+	// fmt.Println(playV2(3018458))
 }
