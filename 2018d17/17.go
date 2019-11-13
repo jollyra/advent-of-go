@@ -75,6 +75,13 @@ func render(coords Coords, topLeft, botRight Point) {
 	}
 }
 
+func appendIfFalling(horizon []Point, p Point, coords Coords) []Point {
+	if coords[p] == CLAY || coords[p] == WATER {
+		return horizon
+	}
+	return append(horizon, p)
+}
+
 func waterDFS(src Point, coords Coords) Coords {
 	// TODO remove next 2 lines
 	topLeft := Point{X: 494, Y: 0}
@@ -83,24 +90,33 @@ func waterDFS(src Point, coords Coords) Coords {
 	horizon := make([]Point, 0, 0)
 	horizon = append(horizon, src)
 	for len(horizon) > 0 {
-		cur, horizon := horizon[0], horizon[1:]
+		var cur Point
+		cur, horizon = horizon[0], horizon[1:]
 		fmt.Println("cur:", cur, "horizon:", horizon)
-		switch groundType := coords[cur]; groundType {
-		case SPRING:
-			horizon = append(horizon, Point{cur.X, cur.Y + 1})
-		case WETSAND:
-			horizon = append(horizon, Point{cur.X, cur.Y + 1})
-		case CLAY:
-			horizon = append(horizon, Point{cur.X + 1, cur.Y})
-			horizon = append(horizon, Point{cur.X - 1, cur.Y})
-			coords[cur] = WATER
-		default:
-			horizon = append(horizon, Point{cur.X, cur.Y + 1})
-			coords[cur] = WETSAND
+
+		groundType, ok := coords[cur]
+		if !ok {
+			groundType = SAND // Sand isn't in the coordinate list
 		}
-		fmt.Println(horizon)
+
+		if groundType == SAND || groundType == WETSAND {
+			below := Point{cur.X, cur.Y + 1}
+			if coords[below] == CLAY || coords[below] == WATER {
+				// horizon = appendIfFalling(horizon, Point{cur.X + 1, cur.Y}, coords)
+				// horizon = appendIfFalling(horizon, Point{cur.X - 1, cur.Y}, coords)
+				horizon = append(horizon, Point{cur.X + 1, cur.Y})
+				horizon = append(horizon, Point{cur.X - 1, cur.Y})
+				coords[cur] = WATER
+			} else {
+				horizon = append(horizon, Point{cur.X, cur.Y + 1})
+				coords[cur] = WETSAND
+			}
+		} else if groundType == SPRING {
+			horizon = appendIfFalling(horizon, Point{cur.X, cur.Y + 1}, coords)
+		}
+
 		render(coords, topLeft, botRight)
-		time.Sleep(500 * time.Millisecond)
+		time.Sleep(100 * time.Millisecond)
 	}
 	return coords
 }
@@ -112,5 +128,7 @@ func main() {
 	topLeft := Point{X: 494, Y: 0}
 	botRight := Point{X: 507, Y: 13}
 	render(coords, topLeft, botRight)
-	waterDFS(Point{500, 0}, coords)
+	for {
+		coords = waterDFS(Point{500, 0}, coords)
+	}
 }
