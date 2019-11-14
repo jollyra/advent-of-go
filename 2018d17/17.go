@@ -75,13 +75,6 @@ func render(coords Coords, topLeft, botRight Point) {
 	}
 }
 
-func appendIfFalling(horizon []Point, p Point, coords Coords) []Point {
-	if coords[p] == CLAY || coords[p] == WATER {
-		return horizon
-	}
-	return append(horizon, p)
-}
-
 func getGroundType(coords Coords, p Point) rune {
 	groundType, ok := coords[p]
 	if !ok {
@@ -91,33 +84,70 @@ func getGroundType(coords Coords, p Point) rune {
 }
 
 func waterDFS(src Point, coords Coords) Coords {
+	var (
+		falling       = true
+		floodingLeft  = false
+		floodingRight = false
+	)
+
 	// TODO remove next 2 lines
 	topLeft := Point{X: 494, Y: 0}
 	botRight := Point{X: 507, Y: 13}
 
-	horizon := make([]Point, 0, 0)
-	horizon = append(horizon, src)
-	for len(horizon) > 0 {
-		var cur Point
-		cur, horizon = horizon[0], horizon[1:]
-		groundType := getGroundType(coords, cur)
-		pointBelow := Point{cur.X, cur.Y + 1}
+	cur := src
+	below := Point{cur.X, cur.Y + 1}
+	for falling {
+		groundType := getGroundType(coords, below)
 		if groundType == SAND || groundType == WETSAND {
-			if coords[pointBelow] == CLAY || coords[pointBelow] == WATER {
-				horizon = append(horizon, Point{cur.X + 1, cur.Y})
-				horizon = append(horizon, Point{cur.X - 1, cur.Y})
-				coords[cur] = WATER
-			} else {
-				horizon = append(horizon, pointBelow)
-				coords[cur] = WETSAND
-			}
-		} else if groundType == SPRING {
-			horizon = appendIfFalling(horizon, pointBelow, coords)
+			coords[cur] = WETSAND
+			cur = below
+			below = Point{below.X, below.Y + 1}
 		}
-
-		render(coords, topLeft, botRight)
-		time.Sleep(100 * time.Millisecond)
+		if groundType == CLAY || groundType == WATER {
+			coords[cur] = WETSAND
+			falling = false
+			floodingLeft = true
+		}
 	}
+	render(coords, topLeft, botRight)
+
+	left := Point{cur.X - 1, cur.Y}
+	right := Point{cur.X + 1, cur.Y}
+
+	for floodingLeft {
+		groundType := getGroundType(coords, left)
+		if groundType == SAND || groundType == WETSAND {
+			coords[cur] = WATER
+			cur = left
+			left = Point{left.X - 1, left.Y}
+		} else if groundType == CLAY {
+			coords[cur] = WATER
+			floodingLeft = false
+			floodingRight = true
+		}
+	}
+	render(coords, topLeft, botRight)
+
+	for floodingRight {
+		groundType := getGroundType(coords, right)
+		if groundType == SAND || groundType == WETSAND {
+			if getGroundType(coords, Point{cur.X, cur.Y + 1}) == SAND {
+				coords[cur] = WETSAND
+				falling = true
+				floodingRight = false
+				cur = right
+			} else {
+				coords[cur] = WATER
+				cur = right
+				right = Point{right.X + 1, right.Y}
+			}
+		} else if groundType == CLAY {
+			coords[cur] = WATER
+			floodingRight = false
+		}
+	}
+	render(coords, topLeft, botRight)
+
 	return coords
 }
 
@@ -129,6 +159,7 @@ func main() {
 	botRight := Point{X: 507, Y: 13}
 	render(coords, topLeft, botRight)
 	for {
-		coords = waterDFS(Point{500, 0}, coords)
+		coords = waterDFS(Point{499, 0}, coords)
+		time.Sleep(500 * time.Millisecond)
 	}
 }
