@@ -82,6 +82,14 @@ func appendIfFalling(horizon []Point, p Point, coords Coords) []Point {
 	return append(horizon, p)
 }
 
+func getGroundType(coords Coords, p Point) rune {
+	groundType, ok := coords[p]
+	if !ok {
+		groundType = SAND // Sand isn't in the coordinate list
+	}
+	return groundType
+}
+
 func waterDFS(src Point, coords Coords) Coords {
 	// TODO remove next 2 lines
 	topLeft := Point{X: 494, Y: 0}
@@ -92,27 +100,19 @@ func waterDFS(src Point, coords Coords) Coords {
 	for len(horizon) > 0 {
 		var cur Point
 		cur, horizon = horizon[0], horizon[1:]
-		fmt.Println("cur:", cur, "horizon:", horizon)
-
-		groundType, ok := coords[cur]
-		if !ok {
-			groundType = SAND // Sand isn't in the coordinate list
-		}
-
+		groundType := getGroundType(coords, cur)
+		pointBelow := Point{cur.X, cur.Y + 1}
 		if groundType == SAND || groundType == WETSAND {
-			below := Point{cur.X, cur.Y + 1}
-			if coords[below] == CLAY || coords[below] == WATER {
-				// horizon = appendIfFalling(horizon, Point{cur.X + 1, cur.Y}, coords)
-				// horizon = appendIfFalling(horizon, Point{cur.X - 1, cur.Y}, coords)
+			if coords[pointBelow] == CLAY || coords[pointBelow] == WATER {
 				horizon = append(horizon, Point{cur.X + 1, cur.Y})
 				horizon = append(horizon, Point{cur.X - 1, cur.Y})
 				coords[cur] = WATER
 			} else {
-				horizon = append(horizon, Point{cur.X, cur.Y + 1})
+				horizon = append(horizon, pointBelow)
 				coords[cur] = WETSAND
 			}
 		} else if groundType == SPRING {
-			horizon = appendIfFalling(horizon, Point{cur.X, cur.Y + 1}, coords)
+			horizon = appendIfFalling(horizon, pointBelow, coords)
 		}
 
 		render(coords, topLeft, botRight)
