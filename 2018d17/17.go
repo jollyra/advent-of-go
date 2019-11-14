@@ -83,6 +83,22 @@ func getGroundType(coords Coords, p Point) rune {
 	return groundType
 }
 
+func findBoundaries(coords Coords) (x0, x1, y0, y1 int) {
+	for p := range coords {
+		if p.X < x0 {
+			x0 = p.X
+		} else if p.X > x1 {
+			x1 = p.X
+		}
+		if p.Y < y0 {
+			y0 = p.Y
+		} else if p.Y > y1 {
+			y1 = p.Y
+		}
+	}
+	return x0, x1, y0, y1
+}
+
 func waterDFS(src Point, coords Coords) (Coords, Point) {
 	var (
 		falling       = true
@@ -97,6 +113,8 @@ func waterDFS(src Point, coords Coords) (Coords, Point) {
 	cur := src
 	below := Point{cur.X, cur.Y + 1}
 	for falling {
+		fmt.Println("cur: ", cur)
+		fmt.Println("falling")
 		groundType := getGroundType(coords, below)
 		if groundType == SAND || groundType == WETSAND {
 			coords[cur] = WETSAND
@@ -115,6 +133,7 @@ func waterDFS(src Point, coords Coords) (Coords, Point) {
 	right := Point{cur.X + 1, cur.Y}
 
 	for floodingLeft {
+		fmt.Println("flooding left")
 		groundType := getGroundType(coords, left)
 		if groundType == SAND || groundType == WETSAND {
 			if getGroundType(coords, Point{cur.X, cur.Y + 1}) == SAND {
@@ -136,6 +155,7 @@ func waterDFS(src Point, coords Coords) (Coords, Point) {
 	render(coords, topLeft, botRight)
 
 	for floodingRight {
+		fmt.Println("flooding right")
 		groundType := getGroundType(coords, right)
 		if groundType == SAND || groundType == WETSAND {
 			if getGroundType(coords, Point{cur.X, cur.Y + 1}) == SAND {
@@ -162,12 +182,14 @@ func main() {
 	fmt.Println("Day 17 part 1")
 	lines := inputLines("17_test.in")
 	coords := parseCoords(lines)
+	x0, x1, y0, y1 := findBoundaries(coords)
+	fmt.Printf("bounds: x0 %d, x1 %d, y0 %d, y1 %d\n", x0, x1, y0, y1)
 	topLeft := Point{X: 494, Y: 0}
 	botRight := Point{X: 507, Y: 13}
 	render(coords, topLeft, botRight)
-	src := Point{499, 0}
+	src := Point{500, 0}
 	for {
 		coords, src = waterDFS(src, coords)
-		time.Sleep(500 * time.Millisecond)
+		time.Sleep(300 * time.Millisecond)
 	}
 }
