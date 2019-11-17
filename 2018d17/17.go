@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"time"
+	// "time"
 )
 
 const (
@@ -85,6 +85,7 @@ func getGroundType(coords Coords, p Point) rune {
 }
 
 func findBoundaries(coords Coords) (topLeft Point, botRight Point) {
+	topLeft = Point{2<<32 - 1, 2<<32 - 1}
 	for p := range coords {
 		if p.X < topLeft.X {
 			topLeft.X = p.X
@@ -105,14 +106,13 @@ func floodDown(coords Coords, src Point, minY int) (Coords, Point, error) {
 	var dst Point
 	below := Point{cur.X, cur.Y + 1}
 	for {
-		// fmt.Println("cur: ", cur)
-		fmt.Println("falling")
+		fmt.Println("falling", src)
 		groundType := getGroundType(coords, below)
 		if groundType == SAND || groundType == WETSAND {
 			coords[cur] = WETSAND
 			cur = below
 			below = Point{below.X, below.Y + 1}
-			if below.Y > minY {
+			if cur.Y > minY {
 				return coords, Point{}, errors.New("Min y value exceeded")
 			}
 		}
@@ -129,17 +129,16 @@ func floodAcross(coords Coords, src Point, mover func(Point) Point) (Coords, []P
 	cur := src
 	next := mover(cur)
 	for {
-		fmt.Println("flooding across")
+		fmt.Println("flooding across", src)
 		groundType := getGroundType(coords, next)
 		if groundType == SAND || groundType == WETSAND {
 			if getGroundType(coords, Point{cur.X, cur.Y + 1}) == SAND {
-				coords[cur] = SPRING
 				return coords, []Point{cur}
 			}
 			coords[cur] = WATER
 			cur = mover(cur)
 			next = mover(cur)
-		} else if groundType == CLAY {
+		} else if groundType == CLAY || groundType == WATER {
 			coords[cur] = WATER
 			break
 		}
@@ -163,32 +162,45 @@ func waterDFS(src Point, coords Coords, topLeft Point, botRight Point) (Coords, 
 	if err != nil {
 		return coords, []Point{}
 	}
-	render(coords, topLeft, botRight)
+	// render(coords, topLeft, botRight)
 
-	var newSrcs []Point
-	coords, newSrcs = floodAcross(coords, cur, moveLeft)
+	newSrcs := make([]Point, 0, 0)
+	var srcs []Point
+	coords, srcs = floodAcross(coords, cur, moveLeft)
+	newSrcs = append(newSrcs, srcs...)
+	// render(coords, topLeft, botRight)
+
+	coords, srcs = floodAcross(coords, cur, moveRight)
+	newSrcs = append(newSrcs, srcs...)
+	// render(coords, topLeft, botRight)
+
 	if len(newSrcs) > 0 {
 		return coords, newSrcs
 	}
-	render(coords, topLeft, botRight)
-
-	coords, newSrcs = floodAcross(coords, cur, moveRight)
-	if len(newSrcs) > 0 {
-		return coords, newSrcs
-	}
-	render(coords, topLeft, botRight)
-
 	return coords, []Point{src}
+}
+
+func countWetTiles(coords Coords) int {
+	n := 0
+	for _, v := range coords {
+		if v == WETSAND || v == WATER {
+			n++
+		}
+	}
+	return n
 }
 
 func main() {
 	fmt.Println("Day 17 part 1")
 	lines := inputLines("17_test.in")
+	// lines := inputLines("17.in")
 	coords := parseCoords(lines)
 	topLeft, botRight := findBoundaries(coords)
 	fmt.Printf("topLeft: %v, botRight: %v\n", topLeft, botRight)
 
 	// TODO remove next 2 lines
+	// topLeft = Point{X: 475, Y: 25}
+	// botRight = Point{X: 510, Y: 45}
 	topLeft = Point{X: 494, Y: 0}
 	botRight = Point{X: 507, Y: 13}
 
@@ -202,7 +214,11 @@ func main() {
 		for _, s := range srcs {
 			horizon = append(horizon, s)
 		}
-		time.Sleep(300 * time.Millisecond)
+		println(len(horizon))
+		render(coords, topLeft, botRight)
+		// time.Sleep(300 * time.Millisecond)
 	}
-	render(coords, topLeft, botRight)
+
+	n := countWetTiles(coords)
+	fmt.Println("part 1:", n-1)
 }
