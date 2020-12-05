@@ -31,34 +31,32 @@ func decode(s string) (int, int) {
 	return rows[0], cols[0]
 }
 
-type seat struct {
-	row int
-	col int
+func seatID(row, col int) int {
+	return row*8 + col
 }
 
 func main() {
 	lines := advent.InputLines(advent.MustGetArg(1))
 	max := 0
-	seats := make(map[seat]bool)
+	seats := make(map[int]bool)
 	for _, line := range lines {
 		row, col := decode(line)
-		seatID := row*8 + col
-		if seatID > max {
-			max = seatID
+		sid := seatID(row, col)
+		seats[sid] = true
+		if sid > max {
+			max = sid
 		}
-		seats[seat{row: row, col: col}] = true
 	}
+	fmt.Println("part 1: ", max)
 
 	for i := 0; i < 128; i++ {
 		for j := 0; j < 8; j++ {
-			// fmt.Println(i*8 + j)
-			exists := seats[seat{row: i, col: j}]
-			if !exists {
-				seatID := i*8 + j
-				fmt.Println(i, j, seatID)
+			sid := seatID(i, j)
+			if !seats[sid] {
+				if seats[sid+1] && seats[sid-1] {
+					fmt.Println("part 2: ", sid)
+				}
 			}
 		}
 	}
-
-	fmt.Println("Max seat ID: ", max)
 }
