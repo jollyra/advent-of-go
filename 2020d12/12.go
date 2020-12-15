@@ -6,7 +6,6 @@ import (
 	"strconv"
 
 	"github.com/jollyra/go-advent-util"
-	// "github.com/stretchr/testify/assert"
 )
 
 type action struct {
@@ -20,11 +19,7 @@ func parse(lines []string) (actions []action) {
 		if err != nil {
 			panic(err)
 		}
-		a := action{
-			action: line[:1],
-			value:  x,
-		}
-		actions = append(actions, a)
+		actions = append(actions, action{action: line[:1], value: x})
 	}
 	return actions
 }
@@ -32,34 +27,31 @@ func parse(lines []string) (actions []action) {
 func main() {
 	lines := advent.InputLines(advent.MustGetArg(1))
 	actions := parse(lines)
-	fmt.Println(actions)
-
 	pos := 0 + 0i
-	heading := 1 + 0i
+	waypoint := 10 + 1i
 	for _, a := range actions {
 		switch action := a.action; action {
 		case "N":
-			pos += complex(0, a.value)
+			waypoint += complex(0, a.value)
 		case "S":
-			pos += complex(0, -a.value)
+			waypoint += complex(0, -a.value)
 		case "E":
-			pos += complex(a.value, 0)
+			waypoint += complex(a.value, 0)
 		case "W":
-			pos += complex(-a.value, 0)
+			waypoint += complex(-a.value, 0)
 		case "L":
 			x := int(a.value / 90)
 			for i := 0; i < x; i++ {
-				heading *= 1i
+				waypoint *= 1i
 			}
 		case "R":
 			x := int(a.value / 90)
 			for i := 0; i < x; i++ {
-				heading *= -1i
+				waypoint *= -1i
 			}
 		case "F":
-			pos = pos + complex(a.value, 0)*heading
+			pos = pos + complex(a.value, 0)*waypoint
 		}
-		fmt.Println(pos, heading)
 	}
-	fmt.Println(math.Abs(real(pos)) + math.Abs(imag(pos)))
+	fmt.Println("ship's manhattan distance from (0, 0):", math.Abs(real(pos))+math.Abs(imag(pos)))
 }
