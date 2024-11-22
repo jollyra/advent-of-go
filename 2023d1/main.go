@@ -9,7 +9,10 @@ import (
 func partA(strings []string) (int, error) {
 	var sum int
 	for _, s := range strings {
-		digits := getDigits(s)
+		digits, err := getDigits(s)
+		if err != nil {
+			return sum, err
+		}
 		i, err := spliceDigits([]rune{digits[0], digits[len(digits)-1]})
 		if err != nil {
 			return sum, err
@@ -23,13 +26,61 @@ func spliceDigits(rs []rune) (int, error) {
 	return strconv.Atoi(string(rs))
 }
 
-func getDigits(s string) (digits []rune) {
-	for _, char := range s {
+func getDigits(s string) (digits []rune, err error) {
+	for i, char := range s {
 		if unicode.IsDigit(char) {
 			digits = append(digits, char)
+		} else {
+			digitInt, ok := getSpelledOutDigit(s[i:])
+			if ok {
+				digitRune, err := intToRune(digitInt)
+				if err != nil {
+					return digits, err
+				}
+				digits = append(digits, digitRune)
+			}
 		}
 	}
-	return digits
+	return digits, nil
+}
+
+func intToRune(i int) (rune, error) {
+	var r rune
+	if i < 0 || i > 9 {
+		return r, fmt.Errorf("arg not integer digit")
+	}
+	strDigit := strconv.Itoa(i)
+	for i, char := range strDigit {
+		if i > 0 {
+			return r, fmt.Errorf("not digit?")
+		}
+		r = char
+	}
+	return r, nil
+}
+
+var digits = map[string]int{
+	"zero":  0,
+	"one":   1,
+	"two":   2,
+	"three": 3,
+	"four":  4,
+	"five":  5,
+	"six":   6,
+	"seven": 7,
+	"eight": 8,
+	"nine":  9,
+}
+
+func getSpelledOutDigit(s string) (int, bool) {
+	for k, v := range digits {
+		if len(s) >= len(k) {
+			if s[0:len(k)] == k {
+				return v, true
+			}
+		}
+	}
+	return 0, false
 }
 
 func main() {
@@ -37,7 +88,17 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	fmt.Printf("part a: %d\n", i)
+	fmt.Printf("answer: %d\n", i)
+}
+
+var testInputPart2 = []string{
+	"two1nine",
+	"eightwothree",
+	"abcone2threexyz",
+	"xtwone3four",
+	"4nineeightseven2",
+	"zoneight234",
+	"7pqrstsixteen",
 }
 
 var testInput = []string{
